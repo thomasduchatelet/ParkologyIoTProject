@@ -12,7 +12,18 @@
 static bool hasWifi = false;
 int messageCount = 1;
 int sentMessageCount = 0;
+static bool messageSending = true;
 
+const int enterPin = PB_3;
+const int exitPin = PB_4;
+int enterState;
+int lastEnterState = LOW;
+int exitState;
+int lastExitState;
+
+unsigned long lastDebounceTimeEnter = 0;  // the last time the output pin was toggled$
+unsigned long lastDebounceTimeExit = 0;
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Utilities
 static void InitWifi()
@@ -45,12 +56,7 @@ static void SendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result)
   char line1[20];
   sprintf(line1, "Count: %d/%d",sentMessageCount, messageCount); 
   Screen.print(2, line1);
-
-  char line2[20];
-  sprintf(line2, "T:%.2f H:%.2f", temperature, humidity);
-  Screen.print(3, line2);
-  messageCount++;
-}
+  }
 
 static void MessageCallback(const char* payLoad, int size)
 {
@@ -67,7 +73,6 @@ static void DeviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
   }
   memcpy(temp, payLoad, size);
   temp[size] = '\0';
-  parseTwinMessage(updateState, temp);
   free(temp);
 }
 
@@ -122,6 +127,9 @@ void setup()
 
   LogTrace("HappyPathSetup", NULL);
 
+  pinMode(enterPin, INPUT);
+  pinMode(exitPin, INPUT);
+
   Screen.print(3, " > IoT Hub");
   DevKitMQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "Parkology-iot");
   DevKitMQTTClient_Init(true);
@@ -130,31 +138,72 @@ void setup()
   DevKitMQTTClient_SetMessageCallback(MessageCallback);
   DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallback);
   DevKitMQTTClient_SetDeviceMethodCallback(DeviceMethodCallback);
-
-  send_interval_ms = SystemTickCounterRead();
 }
 
 void loop()
 {
   if (hasWifi)
   {
-    if (messageSending && 
-        (int)(SystemTickCounterRead() - send_interval_ms) >= getInterval())
+    if (messageSending)
     {
-      // Send teperature data
-      char messagePayload[MESSAGE_MAX_LEN];
+        // read the state of the switch into a local variable:
+      int readingEnter = digitalRead(enterPin);
+      int readingExit = digitalRead(exitPin);
 
-      bool temperatureAlert = readMessage(messageCount, messagePayload, &temperature, &humidity);
-      EVENT_INSTANCE* message = DevKitMQTTClient_Event_Generate(messagePayload, MESSAGE);
-      DevKitMQTTClient_Event_AddProp(message, "temperatureAlert", temperatureAlert ? "true" : "false");
-      DevKitMQTTClient_SendEventInstance(message);
-      
-      send_interval_ms = SystemTickCounterRead();
+      // check to see if you just pressed the button
+      // (i.e. the input went from LOW to HIGH), and you've waited long enough
+      // since the last press to ignore any noise:
+
+      // If the switch changed, due to noise or pressing:
+      if (readingEnter != lastEnterState) {
+        // reset the debouncing timer
+        lastDebounceTimeEnter = millis();
+      }
+      // If the switch changed, due to noise or pressing:
+      if (readingExit != lastExitState) {
+        // reset the debouncing timer
+        lastDebounceTimeExit = millis();
+      }
+      if ((millis() - lastDebounceTimeEnter) > debounceDelay) {
+        // whatever the reading is at, it's been there for longer than the debounce
+        // delay, so take it as the actual current state:
+
+        // if the button state has changed:
+        if (readingEnter != enterState) {
+          enterState = readingEnter;
+
+          // only toggle the LED if the new button state is HIGH
+          if (enterState == HIGH) {
+            sendMessage(1);
+          }
+      }
+      if ((millis() - lastDebounceTimeExit) > debounceDelay){
+        // whatever the reading is at, it's been there for longer than the debounce
+        // delay, so take it as the actual current state:
+
+        // if the button state has changed:
+        if (readingExit != exitState) {
+          exitState = readingExit;
+
+          // only toggle the LED if the new button state is HIGH
+          if (exitState == HIGH) {
+            sendMessage(-1);
+          }
+        }
+      }
     }
+  }
     else
     {
       DevKitMQTTClient_Check();
     }
   }
   delay(1000);
+}
+
+void sendMessage(int value){
+  char messagePayload[MESSAGE_MAX_LEN];
+  readMessage(messageCount, messagePayload, value);
+  EVENT_INSTANCE* message = DevKitMQTTClient_Event_Generate(messagePayload, MESSAGE);
+  DevKitMQTTClient_SendEventInstance(message);
 }
