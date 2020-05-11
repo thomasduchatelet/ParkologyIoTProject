@@ -12,11 +12,6 @@
 static bool hasWifi = false;
 int messageCount = 1;
 int sentMessageCount = 0;
-static bool messageSending = true;
-static uint64_t send_interval_ms;
-
-static float temperature;
-static float humidity;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Utilities
@@ -127,11 +122,8 @@ void setup()
 
   LogTrace("HappyPathSetup", NULL);
 
-  Screen.print(3, " > Sensors");
-  SensorInit();
-
   Screen.print(3, " > IoT Hub");
-  DevKitMQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "DevKit-GetStarted");
+  DevKitMQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "Parkology-iot");
   DevKitMQTTClient_Init(true);
 
   DevKitMQTTClient_SetSendConfirmationCallback(SendConfirmationCallback);

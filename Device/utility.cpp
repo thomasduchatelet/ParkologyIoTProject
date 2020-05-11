@@ -12,15 +12,6 @@
 
 static RGB_LED rgbLed;
 
-const int enterPin = PB_3;
-const int exitPin = PB_4;
-static int interval;
-
-int getInterval()
-{
-    return interval;
-}
-
 void blinkLED()
 {
     rgbLed.turnOff();
