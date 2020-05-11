@@ -10,12 +10,11 @@
 
 #define RGB_LED_BRIGHTNESS 32
 
-DevI2C *i2c;
-HTS221Sensor *sensor;
 static RGB_LED rgbLed;
-static int interval = INTERVAL;
-static float humidity;
-static float temperature;
+
+const int enterPin = PB_3;
+const int exitPin = PB_4;
+static int interval;
 
 int getInterval()
 {
@@ -74,70 +73,25 @@ void parseTwinMessage(DEVICE_TWIN_UPDATE_STATE updateState, const char *message)
     json_value_free(root_value);
 }
 
-void SensorInit()
-{
-    i2c = new DevI2C(D14, D15);
-    sensor = new HTS221Sensor(*i2c);
-    sensor->init(NULL);
-
-    humidity = -1;
-    temperature = -1000;
-}
-
-float readTemperature()
-{
-    sensor->reset();
-
-    float temperature = 0;
-    sensor->getTemperature(&temperature);
-
-    return temperature;
-}
-
-float readHumidity()
-{
-    sensor->reset();
-
-    float humidity = 0;
-    sensor->getHumidity(&humidity);
-
-    return humidity;
-}
-
-bool readMessage(int messageId, char *payload, float *temperatureValue, float *humidityValue)
+void readMessage(int messageId, char *payload, int value)
 {
     JSON_Value *root_value = json_value_init_object();
     JSON_Object *root_object = json_value_get_object(root_value);
     char *serialized_string = NULL;
 
+    char TimeStr[30];
+    time_t ti = time(NULL);
     json_object_set_number(root_object, "messageId", messageId);
+    strftime(TimeStr, 30, "%Y-%m-%dT%H:%M:%S.0000000Z", gmtime(&ti));
+    json_object_set_string(root_object, "timestamp", TimeStr);
 
-    float t = readTemperature();
-    float h = readHumidity();
-    bool temperatureAlert = false;
-    if(t != temperature)
-    {
-        temperature = t;
-        *temperatureValue = t;
-        json_object_set_number(root_object, "temperature", temperature);
-    }
-    if(temperature > TEMPERATURE_ALERT)
-    {
-        temperatureAlert = true;
-    }
-    
-    if(h != humidity)
-    {
-        humidity = h;
-        *humidityValue = h;
-        json_object_set_number(root_object, "humidity", humidity);
-    }
+    json_object_set_number(root_object, "messageId", messageId);
+    json_object_set_number(root_object, "value", value);
     serialized_string = json_serialize_to_string_pretty(root_value);
 
     snprintf(payload, MESSAGE_MAX_LEN, "%s", serialized_string);
     json_free_serialized_string(serialized_string);
     json_value_free(root_value);
-    return temperatureAlert;
 }
 
 #if (DEVKIT_SDK_VERSION >= 10602)
