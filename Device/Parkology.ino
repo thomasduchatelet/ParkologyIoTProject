@@ -14,12 +14,12 @@ int messageCount = 1;
 int sentMessageCount = 0;
 static bool messageSending = true;
 
-const int enterPin = PB_3;
-const int exitPin = PB_4;
-int enterState;
-int lastEnterState = LOW;
+int lastEntranceState = LOW;
+int lastExitState = LOW;
+int entranceState;
 int exitState;
-int lastExitState;
+const int entranceSwitch = PB_4;
+const int exitSwitch = PB_3;
 
 unsigned long lastDebounceTimeEnter = 0;  // the last time the output pin was toggled$
 unsigned long lastDebounceTimeExit = 0;
@@ -84,12 +84,12 @@ static int  DeviceMethodCallback(const char *methodName, const unsigned char *pa
 
   if (strcmp(methodName, "start") == 0)
   {
-    LogInfo("Start sending temperature and humidity data");
+    LogInfo("Start sending data");
     messageSending = true;
   }
   else if (strcmp(methodName, "stop") == 0)
   {
-    LogInfo("Stop sending temperature and humidity data");
+    LogInfo("Stop sending data");
     messageSending = false;
   }
   else
@@ -110,7 +110,7 @@ static int  DeviceMethodCallback(const char *methodName, const unsigned char *pa
 void setup()
 {
   Screen.init();
-  Screen.print(0, "IoT DevKit");
+  Screen.print(0, "Parkology IoT");
   Screen.print(2, "Initializing...");
   
   Screen.print(3, " > Serial");
@@ -126,9 +126,11 @@ void setup()
   }
 
   LogTrace("HappyPathSetup", NULL);
-
-  pinMode(enterPin, INPUT);
-  pinMode(exitPin, INPUT);
+  
+  pinMode(entranceSwitch, INPUT);
+  pinMode(exitSwitch, INPUT);
+  lastEntranceState = digitalRead(entranceSwitch);
+  lastExitState = digitalRead(exitSwitch);
 
   Screen.print(3, " > IoT Hub");
   DevKitMQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "Parkology-iot");
@@ -146,59 +148,28 @@ void loop()
   {
     if (messageSending)
     {
-        // read the state of the switch into a local variable:
-      int readingEnter = digitalRead(enterPin);
-      int readingExit = digitalRead(exitPin);
-
-      // check to see if you just pressed the button
-      // (i.e. the input went from LOW to HIGH), and you've waited long enough
-      // since the last press to ignore any noise:
-
-      // If the switch changed, due to noise or pressing:
-      if (readingEnter != lastEnterState) {
-        // reset the debouncing timer
-        lastDebounceTimeEnter = millis();
+      Screen.print(3, " > Sending");
+      
+      entranceState = digitalRead(entranceSwitch);
+      exitState = digitalRead(exitSwitch);
+        
+      if (entranceState == HIGH && lastEntranceState == LOW) {
+        sendMessage(1);
+        Serial.println("enter sent");
       }
-      // If the switch changed, due to noise or pressing:
-      if (readingExit != lastExitState) {
-        // reset the debouncing timer
-        lastDebounceTimeExit = millis();
+      if (exitState == HIGH && lastExitState == LOW) {
+        sendMessage(-1);
+        Serial.println("exit sent");
+          
       }
-      if ((millis() - lastDebounceTimeEnter) > debounceDelay) {
-        // whatever the reading is at, it's been there for longer than the debounce
-        // delay, so take it as the actual current state:
-
-        // if the button state has changed:
-        if (readingEnter != enterState) {
-          enterState = readingEnter;
-
-          // only toggle the LED if the new button state is HIGH
-          if (enterState == HIGH) {
-            sendMessage(1);
-          }
-      }
-      if ((millis() - lastDebounceTimeExit) > debounceDelay){
-        // whatever the reading is at, it's been there for longer than the debounce
-        // delay, so take it as the actual current state:
-
-        // if the button state has changed:
-        if (readingExit != exitState) {
-          exitState = readingExit;
-
-          // only toggle the LED if the new button state is HIGH
-          if (exitState == HIGH) {
-            sendMessage(-1);
-          }
-        }
-      }
+      lastEntranceState = entranceState;
+      lastExitState = exitState;
     }
-  }
     else
     {
       DevKitMQTTClient_Check();
     }
   }
-  delay(1000);
 }
 
 void sendMessage(int value){
