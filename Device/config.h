@@ -7,3 +7,5 @@
 #define MESSAGE_MAX_LEN 256
 
 #define TEMPERATURE_ALERT 30
+
+#define PARKING_ID 1

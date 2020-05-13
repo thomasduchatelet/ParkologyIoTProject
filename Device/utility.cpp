@@ -28,7 +28,7 @@ void blinkSendConfirmation()
     rgbLed.turnOff();
 }
 
-void readMessage(int messageId, char *payload, int value)
+void readMessage(char *payload, int value)
 {
     JSON_Value *root_value = json_value_init_object();
     JSON_Object *root_object = json_value_get_object(root_value);
@@ -36,11 +36,9 @@ void readMessage(int messageId, char *payload, int value)
 
     char TimeStr[30];
     time_t ti = time(NULL);
-    json_object_set_number(root_object, "messageId", messageId);
     strftime(TimeStr, 30, "%Y-%m-%dT%H:%M:%S.0000000Z", gmtime(&ti));
     json_object_set_string(root_object, "timestamp", TimeStr);
-
-    json_object_set_number(root_object, "messageId", messageId);
+    json_object_set_number(root_object, "parkingId", PARKING_ID);
     json_object_set_number(root_object, "value", value);
     serialized_string = json_serialize_to_string_pretty(root_value);
 

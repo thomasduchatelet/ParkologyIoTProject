@@ -5,7 +5,14 @@
             "folder": "",
             "name": "",
             "dependencies": [],
-            "type": "IoTHub"
+            "type": "IoTHub",
+            "componentInfo": {
+                "values": {
+                    "iotHubConnectionString": "HostName=parkology-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=zKi0Ll8USx6oXNy6T1V4KqRrYhLn+m+l6sNKMpZUq/4=",
+                    "eventHubConnectionString": "Endpoint=sb://ihsuprodamres097dednamespace.servicebus.windows.net/;      SharedAccessKeyName=iothubowner;SharedAccessKey=zKi0Ll8USx6oXNy6T1V4KqRrYhLn+m+l6sNKMpZUq/4=",
+                    "eventHubConnectionPath": "iothub-ehub-parkology-3416002-06263cb43e"
+                }
+            }
         },
         {
             "id": "c7f44721-13db-8e6e-4e25-33a30c262de6",

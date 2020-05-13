@@ -174,7 +174,7 @@ void loop()
 
 void sendMessage(int value){
   char messagePayload[MESSAGE_MAX_LEN];
-  readMessage(messageCount, messagePayload, value);
+  readMessage(messagePayload, value);
   EVENT_INSTANCE* message = DevKitMQTTClient_Event_Generate(messagePayload, MESSAGE);
   DevKitMQTTClient_SendEventInstance(message);
 }

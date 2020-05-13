@@ -4,7 +4,7 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-bool readMessage(int, char *, int);
+bool readMessage(char *, int);
 void blinkLED(void);
 void blinkSendConfirmation(void);
 #endif /* UTILITY_H */
